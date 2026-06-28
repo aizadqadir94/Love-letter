@@ -2072,3 +2072,30 @@ h3 {
     font-size: 1.35rem;
   }
 }
+
+/* --- reliable lobby controls --- */
+.lobby-start-button {
+  width: min(360px, 86vw);
+  margin: 0.2rem auto;
+  padding: 1rem 1.35rem;
+  font-size: 1.15rem;
+  letter-spacing: 0.12em;
+  border-radius: 18px;
+}
+
+.lobby-start-button:disabled {
+  opacity: 0.46;
+}
+
+.game-layout .table-hand-zone .hand:has(.lobby-start-button) {
+  display: flex;
+  justify-content: center;
+}
+
+@media (max-width: 720px) {
+  .lobby-start-button {
+    width: min(320px, 82vw);
+    padding: 0.9rem 1.1rem;
+    font-size: 1rem;
+  }
+}

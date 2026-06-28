@@ -369,10 +369,48 @@ function renderHand() {
   els.privateNotice.hidden = !state.privateNotice;
   els.privateNotice.textContent = state.privateNotice || '';
   els.countessWarning.hidden = !state.mustPlayCountess;
-
   els.hand.innerHTML = '';
-  if (!hand.length) {
-    els.hand.innerHTML = '';
+
+  if (state.status === 'lobby') {
+    selectedCardId = null;
+    selectedTargetId = null;
+    els.privateNotice.hidden = true;
+    els.countessWarning.hidden = true;
+    els.actionBox.hidden = true;
+    els.guessLabel.hidden = true;
+
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'primary lobby-start-button';
+    if (state.isHost) {
+      button.textContent = state.canStart ? 'START' : 'WAITING';
+      button.disabled = !state.canStart;
+      if (state.canStart) button.addEventListener('click', () => sendAction('startRound'));
+    } else {
+      button.textContent = 'WAITING';
+      button.disabled = true;
+    }
+    els.hand.append(button);
+    return;
+  }
+
+  if (state.status === 'round_over' || state.status === 'game_over') {
+    selectedCardId = null;
+    selectedTargetId = null;
+    els.privateNotice.hidden = true;
+    els.countessWarning.hidden = true;
+    els.actionBox.hidden = true;
+    els.guessLabel.hidden = true;
+
+    if (state.isHost) {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'primary lobby-start-button';
+      button.textContent = state.status === 'game_over' ? 'NEW GAME' : 'NEXT ROUND';
+      button.addEventListener('click', () => sendAction(state.status === 'game_over' ? 'newGame' : 'nextRound'));
+      els.hand.append(button);
+    }
+    return;
   }
 
   for (const card of hand) {
@@ -623,8 +661,8 @@ function boot() {
   const urlRoom = normalizeRoom(new URL(window.location.href).searchParams.get('room'));
   if (urlRoom && sessionStorage.getItem(storage.room) && sessionStorage.getItem(storage.room) !== urlRoom) {
     sessionStorage.removeItem(storage.player);
-    sessionStorage.setItem(storage.room, urlRoom);
   }
+  if (urlRoom) sessionStorage.setItem(storage.room, urlRoom);
   const freshSession = getStoredSession();
   els.nameInput.value = freshSession.name || '';
   els.roomInput.value = urlRoom || freshSession.roomCode || '';
