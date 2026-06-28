@@ -1,0 +1,15 @@
+{
+  "name": "normal-deck-love-letter-online",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Online Love Letter-style card game using a normal playing-card deck and custom A/J/2-8 rules.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node test/game.test.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {}
+}
