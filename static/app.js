@@ -60,17 +60,18 @@ const visibleActionTypes = [
 ];
 
 function getStoredSession() {
+  const urlRoom = normalizeRoom(new URL(window.location.href).searchParams.get('room'));
   return {
     name: localStorage.getItem(storage.name) || '',
-    roomCode: localStorage.getItem(storage.room) || '',
-    playerId: localStorage.getItem(storage.player) || '',
+    roomCode: sessionStorage.getItem(storage.room) || urlRoom || '',
+    playerId: sessionStorage.getItem(storage.player) || '',
   };
 }
 
 function saveSession({ name, roomCode, playerId }) {
   if (name) localStorage.setItem(storage.name, name);
-  if (roomCode) localStorage.setItem(storage.room, roomCode);
-  if (playerId) localStorage.setItem(storage.player, playerId);
+  if (roomCode) sessionStorage.setItem(storage.room, roomCode);
+  if (playerId) sessionStorage.setItem(storage.player, playerId);
 }
 
 function normalizeRoom(value) {
@@ -197,23 +198,22 @@ function renderStatus() {
   els.statusEyebrow.textContent = statusLabels[state.status] || state.status;
 
   if (state.status === 'lobby') {
-    els.mainStatus.textContent = state.canStart ? 'Ready to start' : 'Waiting for at least 2 players';
-    els.turnPrompt.textContent = 'Waiting for players';
+    els.mainStatus.textContent = state.canStart ? 'Ready' : 'Waiting';
+    els.turnPrompt.textContent = '';
   } else if (state.status === 'playing') {
     const isYou = state.activePlayerId === state.viewerId;
-    els.mainStatus.textContent = isYou ? 'Your turn' : `${state.activePlayerName || 'A player'}’s turn`;
-    els.turnPrompt.textContent = isYou ? 'Your turn: choose a card' : `${state.activePlayerName || 'A player'} is choosing`;
+    els.mainStatus.textContent = isYou ? 'Your turn' : `${state.activePlayerName || 'Player'}’s turn`;
+    els.turnPrompt.textContent = '';
   } else if (state.status === 'round_over') {
-    els.mainStatus.textContent = `${state.roundResult?.winnerNames?.join(' and ') || 'Nobody'} won the round`;
-    els.turnPrompt.textContent = 'Round over';
+    els.mainStatus.textContent = `${state.roundResult?.winnerNames?.join(' and ') || 'Nobody'} won`;
+    els.turnPrompt.textContent = '';
   } else if (state.status === 'game_over') {
     const names = state.players.filter((p) => state.gameWinnerIds.includes(p.id)).map((p) => p.name).join(' and ');
-    els.mainStatus.textContent = `${names || 'A player'} won the game`;
-    els.turnPrompt.textContent = 'Game over';
+    els.mainStatus.textContent = `${names || 'A player'} won`;
+    els.turnPrompt.textContent = '';
   }
 
-  const latest = latestVisibleLog();
-  els.latestAction.textContent = latest ? latest.message : 'No actions yet.';
+  els.latestAction.textContent = '';
 
   els.roundResult.hidden = !state.roundResult;
   if (state.roundResult) {
@@ -300,13 +300,14 @@ function renderPlayers() {
       selectedTargetId === player.id ? '<span class="badge target-badge">Selected</span>' : '',
     ].join('');
 
+    const hiddenCards = Math.max(0, player.handCount || 0);
     const handPreview = player.visibleHand?.length
       ? `<div class="mini-cards">${player.visibleHand.map((c) => `<span class="mini-card revealed" title="${escapeHtml(c.role)}">${escapeHtml(c.face)}</span>`).join('')}</div>`
-      : `<div class="seat-note"><span class="mini-card">?</span><span>${player.isYou ? 'Your cards are in the play tray.' : `${player.handCount || 0} hidden card${(player.handCount || 0) === 1 ? '' : 's'}`}</span></div>`;
+      : `<div class="mini-cards">${Array.from({ length: hiddenCards }, () => '<span class="mini-card">?</span>').join('')}</div>`;
 
     const discards = player.discards?.length
-      ? `<div class="discard-row">${player.discards.slice(-4).map((c) => `<span class="mini-card revealed" title="${escapeHtml(c.role)}">${escapeHtml(c.face)}</span>`).join('')}</div>`
-      : '<div class="seat-subtle">No discards</div>';
+      ? `<div class="discard-row">${player.discards.slice(-3).map((c) => `<span class="mini-card revealed" title="${escapeHtml(c.role)}">${escapeHtml(c.face)}</span>`).join('')}</div>`
+      : '';
 
     button.innerHTML = `
       <div class="player-top">
@@ -364,13 +365,14 @@ function renderHand() {
   }
 
   els.handTitle.textContent = '';
+  els.handTitle.hidden = true;
   els.privateNotice.hidden = !state.privateNotice;
   els.privateNotice.textContent = state.privateNotice || '';
   els.countessWarning.hidden = !state.mustPlayCountess;
 
   els.hand.innerHTML = '';
   if (!hand.length) {
-    els.hand.innerHTML = '<div class="empty-hand">No cards in hand.</div>';
+    els.hand.innerHTML = '';
   }
 
   for (const card of hand) {
@@ -382,9 +384,9 @@ function renderHand() {
     if (blockedByCountess) button.classList.add('blocked');
     if (card.id === selectedCardId) button.classList.add('selected');
     button.disabled = !mine || blockedByCountess;
+    button.title = `${card.face} — ${card.role}`;
     button.innerHTML = `
       <div class="card-face"><span>${escapeHtml(card.face)}</span><span>${card.rank}</span></div>
-      <div class="card-role"><strong>${escapeHtml(card.role)}</strong><span>${escapeHtml(card.text)}</span></div>
     `;
     button.addEventListener('click', () => {
       if (!mine) return;
@@ -619,13 +621,18 @@ function escapeHtml(value) {
 function boot() {
   const session = getStoredSession();
   const urlRoom = normalizeRoom(new URL(window.location.href).searchParams.get('room'));
-  els.nameInput.value = session.name || '';
-  els.roomInput.value = urlRoom || session.roomCode || '';
+  if (urlRoom && sessionStorage.getItem(storage.room) && sessionStorage.getItem(storage.room) !== urlRoom) {
+    sessionStorage.removeItem(storage.player);
+    sessionStorage.setItem(storage.room, urlRoom);
+  }
+  const freshSession = getStoredSession();
+  els.nameInput.value = freshSession.name || '';
+  els.roomInput.value = urlRoom || freshSession.roomCode || '';
 
   renderRules();
 
-  if (urlRoom && session.playerId && session.roomCode === urlRoom) {
-    openStream(urlRoom, session.playerId);
+  if (urlRoom && freshSession.playerId && freshSession.roomCode === urlRoom) {
+    openStream(urlRoom, freshSession.playerId);
   }
 
   els.createButton.addEventListener('click', createRoom);
