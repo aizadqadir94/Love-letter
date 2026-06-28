@@ -149,6 +149,38 @@ function runUnitTests() {
   }
 
   {
+    const targetCards = [1, 2, 3, 6];
+    for (const rank of targetCards) {
+      const { room, host, p2 } = makePlayingRoom();
+      host.hand = [];
+      const played = addCard(host, rank, rank === 1 ? 'A' : String(rank));
+      addCard(host, 4);
+      setCard(p2, 8);
+      p2.protected = true;
+      room.deck = [setCard({ id: `deck-${rank}` }, 2)];
+      const payload = { cardId: played.id };
+      if (rank === 1) payload.guessRank = 8;
+      assert.doesNotThrow(() => playCard(room, host.id, payload), `rank ${rank} should not get stuck when all opponents are protected`);
+      assert.strictEqual(p2.alive, true, `rank ${rank} should not affect a protected opponent`);
+      assert.ok(room.logs.some((log) => log.type === 'no-target'), `rank ${rank} should create a no-target public event`);
+    }
+  }
+
+  {
+    const { room, host, p2 } = makePlayingRoom();
+    host.hand = [];
+    const prince = addCard(host, 5);
+    addCard(host, 2);
+    setCard(p2, 8);
+    p2.protected = true;
+    room.deck = [setCard({ id: 'deck-prince' }, 3), setCard({ id: 'next-turn' }, 4)];
+    assert.doesNotThrow(() => playCard(room, host.id, { cardId: prince.id }), 'Prince should auto-target self when opponent is protected and no target is sent');
+    assert.strictEqual(host.alive, true, 'Prince self-target should not eliminate unless self discards Princess');
+    assert.strictEqual(p2.alive, true, 'Prince self-target should not touch protected opponent');
+    assert.ok(room.logs.some((log) => log.type === 'prince-redraw' && log.targetId === host.id), 'Prince self-target should be visible as a public action');
+  }
+
+  {
     const { room, host, p2 } = makePlayingRoom();
     host.hand = [];
     const prince = addCard(host, 5);
