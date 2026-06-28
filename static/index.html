@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Love Letter — Normal Deck Online</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="ambient ambient-one"></div>
+    <div class="ambient ambient-two"></div>
+
+    <main class="app-shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Normal deck edition</p>
+          <h1>Love Letter Online</h1>
+        </div>
+        <div class="room-pill" id="roomPill" hidden>
+          <span>Room</span>
+          <strong id="roomCodeLabel"></strong>
+          <button class="ghost small" id="copyLinkButton" type="button">Copy link</button>
+        </div>
+      </header>
+
+      <section class="panel hero" id="entryPanel">
+        <div>
+          <p class="eyebrow">2–6 players</p>
+          <h2>Create a room or join with a code.</h2>
+          <p class="muted">Uses your custom deck: 3 Aces, 3 Jacks, three each of 2–5, two 6s, two 7s, and one 8.</p>
+        </div>
+
+        <form class="entry-grid" id="entryForm">
+          <label>
+            Your name
+            <input id="nameInput" maxlength="24" placeholder="Aizad" autocomplete="name" />
+          </label>
+          <label>
+            Room code
+            <input id="roomInput" maxlength="5" placeholder="ABCDE" autocomplete="off" />
+          </label>
+          <div class="button-row">
+            <button class="primary" id="createButton" type="button">Create room</button>
+            <button class="secondary" id="joinButton" type="button">Join room</button>
+          </div>
+        </form>
+      </section>
+
+      <section class="grid-layout" id="gamePanel" hidden>
+        <section class="panel table-panel">
+          <div class="table-header">
+            <div>
+              <p class="eyebrow" id="statusEyebrow">Lobby</p>
+              <h2 id="mainStatus">Waiting for players</h2>
+            </div>
+            <div class="button-row compact" id="hostControls"></div>
+          </div>
+
+          <div class="players-grid" id="playersGrid"></div>
+
+          <div class="round-result" id="roundResult" hidden></div>
+        </section>
+
+        <aside class="side-stack">
+          <section class="panel hand-panel">
+            <div class="section-title">
+              <div>
+                <p class="eyebrow">Your hand</p>
+                <h3 id="handTitle">Waiting</h3>
+              </div>
+            </div>
+            <div class="private-notice" id="privateNotice" hidden></div>
+            <div class="countess-warning" id="countessWarning" hidden>Countess rule active: you must play a 7.</div>
+            <div class="hand" id="hand"></div>
+            <div class="action-box" id="actionBox" hidden>
+              <label id="targetLabel">
+                Target
+                <select id="targetSelect"></select>
+              </label>
+              <label id="guessLabel" hidden>
+                Guess
+                <select id="guessSelect">
+                  <option value="2">2 — Priest</option>
+                  <option value="3">3 — Baron</option>
+                  <option value="4">4 — Handmaid</option>
+                  <option value="5">5 — Prince</option>
+                  <option value="6">6 — King</option>
+                  <option value="7">7 — Countess</option>
+                  <option value="8">8 — Princess</option>
+                </select>
+              </label>
+              <button class="primary wide" id="playButton" type="button">Play selected card</button>
+            </div>
+          </section>
+
+          <section class="panel rules-panel">
+            <div class="section-title">
+              <div>
+                <p class="eyebrow">Deck rules</p>
+                <h3>Card powers</h3>
+              </div>
+            </div>
+            <div class="rules-list" id="rulesList"></div>
+          </section>
+
+          <section class="panel log-panel">
+            <div class="section-title">
+              <div>
+                <p class="eyebrow">Game log</p>
+                <h3>Latest actions</h3>
+              </div>
+              <span class="deck-count" id="deckCount">Deck: —</span>
+            </div>
+            <div class="public-burn" id="publicBurn" hidden></div>
+            <div class="log-list" id="logList"></div>
+          </section>
+        </aside>
+      </section>
+    </main>
+
+    <div class="toast-zone" id="toastZone"></div>
+    <div class="spotlight" id="spotlight" hidden></div>
+
+    <script src="/app.js"></script>
+  </body>
+</html>
