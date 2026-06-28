@@ -157,8 +157,8 @@ async function sendAction(action, payload = {}) {
     const data = await api('/api/action', {
       method: 'POST',
       body: JSON.stringify({
-        roomCode: session.roomCode,
-        playerId: session.playerId,
+        roomCode: state.code || session.roomCode,
+        playerId: state.viewerId || session.playerId,
         action,
         payload,
       }),
@@ -322,10 +322,13 @@ function renderPlayers() {
 
     button.disabled = !isTargetable;
     button.addEventListener('click', () => {
-      if (!isTargetable) return;
-      selectedTargetId = player.id;
-      renderHand();
-      renderPlayers();
+      if (!isTargetable || !selectedCard) return;
+      const info = state.cards[selectedCard.rank];
+      const payload = { cardId: selectedCard.id, targetId: player.id };
+      if (info.needsGuess) payload.guessRank = Number(els.guessSelect.value);
+      selectedCardId = null;
+      selectedTargetId = null;
+      sendAction('playCard', payload);
     });
 
     els.playersGrid.append(button);
@@ -360,7 +363,7 @@ function renderHand() {
     selectedTargetId = null;
   }
 
-  els.handTitle.textContent = mine ? 'Tap a card below, then tap a highlighted player' : (state.status === 'playing' ? 'Waiting for your turn' : 'Round not active');
+  els.handTitle.textContent = '';
   els.privateNotice.hidden = !state.privateNotice;
   els.privateNotice.textContent = state.privateNotice || '';
   els.countessWarning.hidden = !state.mustPlayCountess;
@@ -374,17 +377,39 @@ function renderHand() {
     const button = document.createElement('button');
     button.type = 'button';
     button.className = 'playing-card';
-    if (mine) button.classList.add('selectable');
+    const blockedByCountess = state.mustPlayCountess && card.rank !== 7;
+    if (mine && !blockedByCountess) button.classList.add('selectable');
+    if (blockedByCountess) button.classList.add('blocked');
     if (card.id === selectedCardId) button.classList.add('selected');
-    button.disabled = !mine;
+    button.disabled = !mine || blockedByCountess;
     button.innerHTML = `
       <div class="card-face"><span>${escapeHtml(card.face)}</span><span>${card.rank}</span></div>
       <div class="card-role"><strong>${escapeHtml(card.role)}</strong><span>${escapeHtml(card.text)}</span></div>
     `;
     button.addEventListener('click', () => {
       if (!mine) return;
+      if (state.mustPlayCountess && card.rank !== 7) return;
+
       selectedCardId = card.id;
       selectedTargetId = null;
+
+      const info = state.cards[card.rank];
+      const targetIds = state.validTargets?.[card.id] || [];
+
+      if (!info.needsTarget || targetIds.length === 0) {
+        const payload = { cardId: card.id };
+        if (info.needsGuess) payload.guessRank = Number(els.guessSelect.value);
+        selectedCardId = null;
+        sendAction('playCard', payload);
+        return;
+      }
+
+      if (card.rank === 5 && targetIds.length === 1 && targetIds[0] === state.viewerId) {
+        selectedCardId = null;
+        sendAction('playCard', { cardId: card.id, targetId: state.viewerId });
+        return;
+      }
+
       renderHand();
       renderPlayers();
     });
@@ -395,73 +420,17 @@ function renderHand() {
 }
 
 function renderActionBox(mine, selectedCard) {
-  els.actionBox.hidden = state.status !== 'playing';
-  if (state.status !== 'playing') return;
+  els.actionBox.hidden = true;
+  els.actionHint.textContent = '';
+  els.playButton.disabled = true;
+  els.playButton.onclick = null;
+  els.playButton.textContent = '';
 
-  const noTurn = !mine;
-  if (noTurn) {
-    els.actionHint.textContent = `${state.activePlayerName || 'A player'} is choosing. Watch the table.`;
-    els.guessLabel.hidden = true;
-    els.playButton.disabled = true;
-    els.playButton.textContent = 'Waiting';
-    els.playButton.onclick = null;
-    return;
+  const showGuess = state.status === 'playing' && mine && selectedCard && state.cards[selectedCard.rank]?.needsGuess;
+  els.guessLabel.hidden = !showGuess;
+  if (showGuess) {
+    els.actionBox.hidden = false;
   }
-
-  if (!selectedCard) {
-    els.actionHint.textContent = 'Step 1: tap one of your two cards on the table.';
-    els.guessLabel.hidden = true;
-    els.playButton.disabled = true;
-    els.playButton.textContent = 'Select a card first';
-    els.playButton.onclick = null;
-    return;
-  }
-
-  const info = state.cards[selectedCard.rank];
-  const targetIds = state.validTargets?.[selectedCard.id] || [];
-  const targets = state.players.filter((player) => targetIds.includes(player.id));
-  const selfOnlyPrince = selectedCard.rank === 5 && targetIds.length === 1 && targetIds[0] === state.viewerId;
-  if (selectedTargetId && !targetIds.includes(selectedTargetId)) selectedTargetId = null;
-  if (selfOnlyPrince) selectedTargetId = state.viewerId;
-
-  els.guessLabel.hidden = !info.needsGuess;
-
-  if (info.needsTarget && targets.length > 0 && !selectedTargetId) {
-    els.actionHint.textContent = `Step 2: tap a highlighted player on the poker table for ${selectedCard.role}.`;
-    els.playButton.disabled = true;
-    els.playButton.textContent = 'Select a target';
-    els.playButton.onclick = null;
-    return;
-  }
-
-  if (info.needsTarget && targets.length === 0) {
-    els.guessLabel.hidden = true;
-    els.actionHint.textContent = `${selectedCard.role} has no valid target because everyone else is protected. It will be played with no effect.`;
-    els.playButton.disabled = false;
-    els.playButton.textContent = 'Play card — no effect';
-  } else if (selfOnlyPrince) {
-    els.actionHint.textContent = 'The only valid Prince target is you. Play to discard your own card and redraw.';
-    els.playButton.disabled = false;
-    els.playButton.textContent = 'Play Prince on yourself';
-  } else if (info.needsTarget) {
-    const target = state.players.find((player) => player.id === selectedTargetId);
-    els.actionHint.textContent = `Ready: play ${selectedCard.face} on ${target ? target.name : 'selected target'}.`;
-    els.playButton.disabled = false;
-    els.playButton.textContent = 'Play selected card';
-  } else {
-    els.actionHint.textContent = `Ready: play ${selectedCard.face}.`;
-    els.playButton.disabled = false;
-    els.playButton.textContent = 'Play selected card';
-  }
-
-  els.playButton.onclick = () => {
-    const payload = { cardId: selectedCard.id };
-    if (info.needsTarget && targets.length > 0) payload.targetId = selectedTargetId;
-    if (info.needsGuess) payload.guessRank = Number(els.guessSelect.value);
-    selectedCardId = null;
-    selectedTargetId = null;
-    sendAction('playCard', payload);
-  };
 }
 
 function renderRules() {

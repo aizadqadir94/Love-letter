@@ -1574,3 +1574,314 @@ h3 {
     width: 136px;
   }
 }
+
+/* --- ultra clean table mode --- */
+.table-header {
+  display: none !important;
+}
+
+.table-panel {
+  padding: 0.55rem !important;
+  min-height: auto !important;
+}
+
+.game-layout {
+  display: block !important;
+}
+
+.poker-table {
+  height: calc(100vh - 110px) !important;
+  min-height: 650px !important;
+  border-radius: 26px !important;
+  overflow: hidden !important;
+}
+
+.table-felt {
+  inset: 15% 6% 19% 6% !important;
+  border-width: 8px !important;
+  opacity: 0.96;
+}
+
+.table-center {
+  display: none !important;
+}
+
+.table-hand-zone {
+  position: absolute !important;
+  left: 50% !important;
+  bottom: 10px !important;
+  transform: translateX(-50%) !important;
+  z-index: 20 !important;
+  width: min(560px, calc(100% - 18px)) !important;
+  padding: 0.7rem !important;
+  border-radius: 22px !important;
+  background: rgba(8, 10, 18, 0.92) !important;
+  border: 1px solid rgba(255, 255, 255, 0.14) !important;
+  box-shadow: 0 22px 60px rgba(0,0,0,.42) !important;
+  backdrop-filter: blur(16px) !important;
+}
+
+.table-hand-zone .eyebrow,
+.table-hand-zone h3,
+.private-notice,
+.countess-warning,
+.action-hint,
+.deck-count,
+.public-burn,
+.latest-action,
+.turn-prompt,
+.round-result {
+  display: none !important;
+}
+
+.table-hand-zone .hand {
+  display: grid !important;
+  grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+  gap: 0.65rem !important;
+}
+
+.table-hand-zone .playing-card {
+  min-height: 160px !important;
+  border-radius: 18px !important;
+  padding: 0.8rem !important;
+  touch-action: manipulation;
+}
+
+.table-hand-zone .playing-card.blocked {
+  filter: grayscale(0.9);
+  opacity: 0.35;
+}
+
+.table-hand-zone .playing-card.selected {
+  outline: 4px solid var(--primary) !important;
+  box-shadow: 0 0 0 4px rgba(240, 200, 108, 0.18), 0 20px 48px rgba(240, 200, 108, 0.28) !important;
+}
+
+.table-hand-zone .card-face {
+  font-size: 1.8rem !important;
+}
+
+.table-hand-zone .card-role strong {
+  font-size: 1rem !important;
+}
+
+.table-hand-zone .card-role span {
+  display: none !important;
+}
+
+.action-box {
+  margin-top: 0.55rem !important;
+  gap: 0 !important;
+}
+
+#guessLabel {
+  font-size: 0 !important;
+  gap: 0 !important;
+}
+
+#guessSelect {
+  font-size: 1rem !important;
+  padding: 0.75rem !important;
+  text-align: center !important;
+  border-radius: 14px !important;
+}
+
+#playButton {
+  display: none !important;
+}
+
+.player-seat {
+  width: 150px !important;
+  min-height: 96px !important;
+  padding: 0.55rem !important;
+  border-radius: 16px !important;
+  background: rgba(18, 22, 38, 0.72) !important;
+  backdrop-filter: blur(14px) !important;
+}
+
+.player-seat.self-seat {
+  width: 158px !important;
+}
+
+.player-seat.active {
+  border-color: rgba(240, 200, 108, 0.95) !important;
+  box-shadow: 0 0 0 3px rgba(240, 200, 108, 0.25), 0 0 50px rgba(240, 200, 108, 0.24) !important;
+}
+
+.player-seat.active::before {
+  content: "TURN" !important;
+  top: -12px !important;
+  left: 10px !important;
+}
+
+.player-seat.targetable {
+  border-color: rgba(132, 230, 182, 1) !important;
+  box-shadow: 0 0 0 3px rgba(132, 230, 182, .25), 0 0 48px rgba(132, 230, 182, .25) !important;
+}
+
+.player-seat.target-selected {
+  border-color: var(--primary) !important;
+}
+
+.player-name {
+  font-size: 0.9rem !important;
+  max-width: 92px !important;
+}
+
+.badges .badge:not(.seat-num):not(.blue):not(.ok):not(.danger):not(.target-badge) {
+  display: none !important;
+}
+
+.badge {
+  font-size: 0.52rem !important;
+  padding: 0.13rem 0.32rem !important;
+}
+
+.score-dots {
+  max-width: 46px !important;
+  flex-wrap: wrap !important;
+}
+
+.dot {
+  width: 7px !important;
+  height: 7px !important;
+}
+
+.seat-note span:last-child,
+.seat-subtle,
+.discard-row {
+  display: none !important;
+}
+
+.seat-note .mini-card,
+.mini-card {
+  width: 28px !important;
+  height: 38px !important;
+  border-radius: 8px !important;
+  font-size: 0.72rem !important;
+}
+
+.toast-zone {
+  left: 50% !important;
+  right: auto !important;
+  top: 10px !important;
+  bottom: auto !important;
+  transform: translateX(-50%) !important;
+  width: min(420px, calc(100% - 28px)) !important;
+  z-index: 100 !important;
+}
+
+.toast {
+  text-align: center !important;
+  padding: 0.78rem 0.9rem !important;
+  border-radius: 16px !important;
+}
+
+@media (max-width: 720px) {
+  .app-shell {
+    width: calc(100% - 8px) !important;
+    padding-top: 8px !important;
+    padding-bottom: 10px !important;
+  }
+
+  .topbar {
+    display: none !important;
+  }
+
+  .poker-table {
+    height: calc(100vh - 18px) !important;
+    min-height: 700px !important;
+    border-radius: 20px !important;
+  }
+
+  .table-felt {
+    inset: 16% 3% 24% 3% !important;
+    border-width: 7px !important;
+  }
+
+  .table-hand-zone {
+    width: calc(100% - 12px) !important;
+    bottom: 8px !important;
+    padding: 0.58rem !important;
+    border-radius: 18px !important;
+  }
+
+  .table-hand-zone .hand {
+    gap: 0.48rem !important;
+  }
+
+  .table-hand-zone .playing-card {
+    min-height: 132px !important;
+    padding: 0.62rem !important;
+    border-radius: 16px !important;
+  }
+
+  .table-hand-zone .card-face {
+    font-size: 1.45rem !important;
+  }
+
+  .table-hand-zone .card-role strong {
+    font-size: 0.92rem !important;
+  }
+
+  .player-seat {
+    width: 112px !important;
+    min-height: 82px !important;
+    padding: 0.43rem !important;
+    border-radius: 14px !important;
+  }
+
+  .player-seat.self-seat {
+    width: 124px !important;
+  }
+
+  .player-name {
+    font-size: 0.78rem !important;
+    max-width: 66px !important;
+  }
+
+  .badge {
+    font-size: 0.48rem !important;
+    padding: 0.1rem 0.26rem !important;
+  }
+
+  .score-dots {
+    max-width: 38px !important;
+  }
+
+  .seat-note .mini-card,
+  .mini-card {
+    width: 22px !important;
+    height: 30px !important;
+    border-radius: 7px !important;
+    font-size: 0.62rem !important;
+  }
+
+  #guessSelect {
+    font-size: 0.88rem !important;
+    padding: 0.58rem !important;
+  }
+}
+
+@media (max-width: 430px) {
+  .poker-table {
+    min-height: 715px !important;
+  }
+
+  .table-felt {
+    inset: 16% 2% 25% 2% !important;
+  }
+
+  .table-hand-zone .playing-card {
+    min-height: 122px !important;
+  }
+
+  .player-seat {
+    width: 104px !important;
+    min-height: 80px !important;
+  }
+
+  .player-seat.self-seat {
+    width: 120px !important;
+  }
+}
