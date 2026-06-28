@@ -10,6 +10,8 @@ const els = {
   copyLinkButton: document.getElementById('copyLinkButton'),
   statusEyebrow: document.getElementById('statusEyebrow'),
   mainStatus: document.getElementById('mainStatus'),
+  turnPrompt: document.getElementById('turnPrompt'),
+  latestAction: document.getElementById('latestAction'),
   hostControls: document.getElementById('hostControls'),
   playersGrid: document.getElementById('playersGrid'),
   roundResult: document.getElementById('roundResult'),
@@ -18,8 +20,7 @@ const els = {
   countessWarning: document.getElementById('countessWarning'),
   hand: document.getElementById('hand'),
   actionBox: document.getElementById('actionBox'),
-  targetSelect: document.getElementById('targetSelect'),
-  targetLabel: document.getElementById('targetLabel'),
+  actionHint: document.getElementById('actionHint'),
   guessLabel: document.getElementById('guessLabel'),
   guessSelect: document.getElementById('guessSelect'),
   playButton: document.getElementById('playButton'),
@@ -40,8 +41,24 @@ const storage = {
 let state = null;
 let eventSource = null;
 let selectedCardId = null;
+let selectedTargetId = null;
 let lastEventId = 0;
 let lastRoundKey = '';
+
+const visibleActionTypes = [
+  'guard-hit',
+  'guard-miss',
+  'private-effect',
+  'baron-result',
+  'baron-draw',
+  'prince-redraw',
+  'prince-princess',
+  'king-trade',
+  'protected',
+  'countess',
+  'princess-played',
+  'no-target',
+];
 
 function getStoredSession() {
   return {
@@ -55,11 +72,6 @@ function saveSession({ name, roomCode, playerId }) {
   if (name) localStorage.setItem(storage.name, name);
   if (roomCode) localStorage.setItem(storage.room, roomCode);
   if (playerId) localStorage.setItem(storage.player, playerId);
-}
-
-function clearSession() {
-  localStorage.removeItem(storage.room);
-  localStorage.removeItem(storage.player);
 }
 
 function normalizeRoom(value) {
@@ -135,7 +147,7 @@ function openStream(roomCode, playerId) {
     }
   };
   eventSource.onerror = () => {
-    // EventSource reconnects automatically. Avoid noisy UI errors.
+    // EventSource reconnects automatically.
   };
 }
 
@@ -170,9 +182,8 @@ function applyState(nextState) {
 
   renderStatus();
   renderHostControls();
-  renderPlayers();
   renderHand();
-  renderRules();
+  renderPlayers();
   renderLog();
   handleNewEvents(previous, state);
 }
@@ -188,14 +199,22 @@ function renderStatus() {
 
   if (state.status === 'lobby') {
     els.mainStatus.textContent = state.canStart ? 'Ready to start' : 'Waiting for at least 2 players';
+    els.turnPrompt.textContent = 'Waiting for players';
   } else if (state.status === 'playing') {
-    els.mainStatus.textContent = `${state.activePlayerName || 'A player'} is choosing`;
+    const isYou = state.activePlayerId === state.viewerId;
+    els.mainStatus.textContent = isYou ? 'Your turn' : `${state.activePlayerName || 'A player'}’s turn`;
+    els.turnPrompt.textContent = isYou ? 'Your turn: choose a card' : `${state.activePlayerName || 'A player'} is choosing`;
   } else if (state.status === 'round_over') {
     els.mainStatus.textContent = `${state.roundResult?.winnerNames?.join(' and ') || 'Nobody'} won the round`;
+    els.turnPrompt.textContent = 'Round over';
   } else if (state.status === 'game_over') {
     const names = state.players.filter((p) => state.gameWinnerIds.includes(p.id)).map((p) => p.name).join(' and ');
     els.mainStatus.textContent = `${names || 'A player'} won the game`;
+    els.turnPrompt.textContent = 'Game over';
   }
+
+  const latest = latestVisibleLog();
+  els.latestAction.textContent = latest ? latest.message : 'No actions yet.';
 
   els.roundResult.hidden = !state.roundResult;
   if (state.roundResult) {
@@ -238,22 +257,47 @@ function makeButton(text, className, onClick) {
 }
 
 function renderPlayers() {
+  const felt = els.playersGrid.querySelector('.table-felt');
+  const center = els.playersGrid.querySelector('.table-center');
   els.playersGrid.innerHTML = '';
-  for (const player of state.players) {
-    const card = document.createElement('article');
-    card.className = 'player-card';
-    if (player.id === state.activePlayerId) card.classList.add('active');
-    if (!player.alive && state.status !== 'lobby') card.classList.add('eliminated');
+  els.playersGrid.append(felt, center);
 
+  const orderedPlayers = orderedSeatPlayers();
+  const latest = latestInteractiveLog();
+  const selectedCard = selectedCardFromState();
+  const targetIds = selectedCard ? (state.validTargets?.[selectedCard.id] || []) : [];
+  if (selectedTargetId && !targetIds.includes(selectedTargetId)) selectedTargetId = null;
+
+  orderedPlayers.forEach((player, seatIndex) => {
+    const pos = getSeatPosition(seatIndex, orderedPlayers.length);
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'player-seat';
+    button.style.left = `${pos.x}%`;
+    button.style.top = `${pos.y}%`;
+
+    const isTargetable = isMyTurn() && selectedCard && targetIds.includes(player.id);
+    if (player.id === state.activePlayerId) button.classList.add('active');
+    if (!player.alive && state.status !== 'lobby') button.classList.add('eliminated');
+    if (player.isYou) button.classList.add('you');
+    if (isTargetable) button.classList.add('targetable');
+    if (selectedTargetId === player.id) button.classList.add('target-selected');
+    if (latest?.actorId === player.id) button.classList.add('recent-actor');
+    if (latest?.targetId === player.id) button.classList.add('recent-target');
+
+    const originalSeat = state.players.findIndex((p) => p.id === player.id) + 1;
     const scoreDots = Array.from({ length: state.targetScore }, (_, index) => (
       `<span class="dot ${index < player.score ? 'filled' : ''}"></span>`
     )).join('');
 
     const badges = [
+      `<span class="badge seat-num">P${originalSeat}</span>`,
       player.isYou ? '<span class="badge blue">You</span>' : '',
       player.isHost ? '<span class="badge">Host</span>' : '',
       player.protected ? '<span class="badge ok">Protected</span>' : '',
-      !player.connected ? '<span class="badge danger">Disconnected</span>' : '',
+      !player.connected ? '<span class="badge danger">Offline</span>' : '',
+      isTargetable ? '<span class="badge target-badge">Tap target</span>' : '',
+      selectedTargetId === player.id ? '<span class="badge target-badge">Selected</span>' : '',
     ].join('');
 
     const visibleHand = player.visibleHand?.length
@@ -261,10 +305,10 @@ function renderPlayers() {
       : Array.from({ length: player.handCount || 0 }, () => '<span class="mini-card">?</span>').join('');
 
     const discards = player.discards?.length
-      ? `<div class="discard-row">${player.discards.slice(-8).map((c) => `<span class="mini-card revealed" title="${escapeHtml(c.role)}">${escapeHtml(c.face)}</span>`).join('')}</div>`
-      : '<div class="discard-row"><span class="muted">No discards</span></div>';
+      ? `<div class="discard-row">${player.discards.slice(-6).map((c) => `<span class="mini-card revealed" title="${escapeHtml(c.role)}">${escapeHtml(c.face)}</span>`).join('')}</div>`
+      : '<div class="discard-row"><span class="muted tiny">No discards</span></div>';
 
-    card.innerHTML = `
+    button.innerHTML = `
       <div class="player-top">
         <div>
           <div class="player-name">${escapeHtml(player.name)}</div>
@@ -272,80 +316,151 @@ function renderPlayers() {
         </div>
         <div class="score-dots" title="${player.score}/${state.targetScore}">${scoreDots}</div>
       </div>
-      <div class="mini-cards">${visibleHand || '<span class="muted">No hand</span>'}</div>
+      <div class="mini-cards">${visibleHand || '<span class="muted tiny">No hand</span>'}</div>
       ${discards}
     `;
-    els.playersGrid.append(card);
-  }
+
+    button.disabled = !isTargetable;
+    button.addEventListener('click', () => {
+      if (!isTargetable) return;
+      selectedTargetId = player.id;
+      renderHand();
+      renderPlayers();
+    });
+
+    els.playersGrid.append(button);
+  });
+}
+
+function orderedSeatPlayers() {
+  const players = state.players || [];
+  const index = players.findIndex((player) => player.id === state.viewerId);
+  if (index < 0) return players;
+  return players.slice(index).concat(players.slice(0, index));
+}
+
+function getSeatPosition(index, count) {
+  const maps = {
+    1: [{ x: 50, y: 82 }],
+    2: [{ x: 50, y: 83 }, { x: 50, y: 16 }],
+    3: [{ x: 50, y: 83 }, { x: 18, y: 30 }, { x: 82, y: 30 }],
+    4: [{ x: 50, y: 84 }, { x: 15, y: 50 }, { x: 50, y: 15 }, { x: 85, y: 50 }],
+    5: [{ x: 50, y: 84 }, { x: 15, y: 64 }, { x: 20, y: 24 }, { x: 80, y: 24 }, { x: 85, y: 64 }],
+    6: [{ x: 50, y: 84 }, { x: 16, y: 66 }, { x: 16, y: 32 }, { x: 50, y: 15 }, { x: 84, y: 32 }, { x: 84, y: 66 }],
+  };
+  return (maps[count] || maps[6])[index] || { x: 50, y: 50 };
 }
 
 function renderHand() {
-  const isMyTurn = state.status === 'playing' && state.activePlayerId === state.viewerId;
+  const mine = isMyTurn();
   const hand = state.ownHand || [];
 
-  els.handTitle.textContent = isMyTurn ? 'Choose one card to play' : (state.status === 'playing' ? 'Waiting for your turn' : 'Round not active');
+  if (!hand.find((card) => card.id === selectedCardId)) {
+    selectedCardId = null;
+    selectedTargetId = null;
+  }
+
+  els.handTitle.textContent = mine ? 'Select a card, then select a player on the table' : (state.status === 'playing' ? 'Waiting for your turn' : 'Round not active');
   els.privateNotice.hidden = !state.privateNotice;
   els.privateNotice.textContent = state.privateNotice || '';
   els.countessWarning.hidden = !state.mustPlayCountess;
 
-  if (!hand.find((card) => card.id === selectedCardId)) selectedCardId = null;
-  if (!selectedCardId && isMyTurn && hand.length) selectedCardId = hand[0].id;
-
   els.hand.innerHTML = '';
+  if (!hand.length) {
+    els.hand.innerHTML = '<div class="empty-hand">No cards in hand.</div>';
+  }
+
   for (const card of hand) {
     const button = document.createElement('button');
     button.type = 'button';
     button.className = 'playing-card';
-    if (isMyTurn) button.classList.add('selectable');
+    if (mine) button.classList.add('selectable');
     if (card.id === selectedCardId) button.classList.add('selected');
-    button.disabled = !isMyTurn;
+    button.disabled = !mine;
     button.innerHTML = `
       <div class="card-face"><span>${escapeHtml(card.face)}</span><span>${card.rank}</span></div>
       <div class="card-role"><strong>${escapeHtml(card.role)}</strong><span>${escapeHtml(card.text)}</span></div>
     `;
     button.addEventListener('click', () => {
-      if (!isMyTurn) return;
+      if (!mine) return;
       selectedCardId = card.id;
+      selectedTargetId = null;
       renderHand();
+      renderPlayers();
     });
     els.hand.append(button);
   }
 
-  renderActionBox(isMyTurn, hand.find((card) => card.id === selectedCardId));
+  renderActionBox(mine, selectedCardFromState());
 }
 
-function renderActionBox(isMyTurn, selectedCard) {
-  els.actionBox.hidden = !isMyTurn || !selectedCard;
-  if (!isMyTurn || !selectedCard) return;
+function renderActionBox(mine, selectedCard) {
+  els.actionBox.hidden = state.status !== 'playing';
+  if (state.status !== 'playing') return;
+
+  const noTurn = !mine;
+  if (noTurn) {
+    els.actionHint.textContent = `${state.activePlayerName || 'A player'} is choosing. Watch the table.`;
+    els.guessLabel.hidden = true;
+    els.playButton.disabled = true;
+    els.playButton.textContent = 'Waiting';
+    return;
+  }
+
+  if (!selectedCard) {
+    els.actionHint.textContent = 'Step 1: select one of your two cards.';
+    els.guessLabel.hidden = true;
+    els.playButton.disabled = true;
+    els.playButton.textContent = 'Select a card first';
+    return;
+  }
 
   const info = state.cards[selectedCard.rank];
   const targetIds = state.validTargets?.[selectedCard.id] || [];
   const targets = state.players.filter((player) => targetIds.includes(player.id));
+  if (selectedTargetId && !targetIds.includes(selectedTargetId)) selectedTargetId = null;
 
-  els.targetLabel.hidden = !info.needsTarget || targets.length === 0;
   els.guessLabel.hidden = !info.needsGuess;
-  els.targetSelect.innerHTML = targets.map((player) => `<option value="${escapeHtml(player.id)}">${escapeHtml(player.name)}</option>`).join('');
+
+  if (info.needsTarget && targets.length > 0 && !selectedTargetId) {
+    els.actionHint.textContent = `Step 2: tap a target on the poker table for ${selectedCard.role}.`;
+    els.playButton.disabled = true;
+    els.playButton.textContent = 'Select a target';
+    return;
+  }
 
   if (info.needsTarget && targets.length === 0) {
+    els.actionHint.textContent = `${selectedCard.role} has no valid targets, so it will have no effect.`;
+    els.playButton.disabled = false;
     els.playButton.textContent = 'Play card — no valid targets';
-  } else {
-    els.playButton.textContent = 'Play selected card';
+    return;
   }
+
+  if (info.needsTarget) {
+    const target = state.players.find((player) => player.id === selectedTargetId);
+    els.actionHint.textContent = `Ready: play ${selectedCard.face} on ${target ? target.name : 'selected target'}.`;
+  } else {
+    els.actionHint.textContent = `Ready: play ${selectedCard.face}.`;
+  }
+  els.playButton.disabled = false;
+  els.playButton.textContent = 'Play selected card';
 
   els.playButton.onclick = () => {
     const payload = { cardId: selectedCard.id };
-    if (info.needsTarget && targets.length > 0) payload.targetId = els.targetSelect.value;
+    if (info.needsTarget && targets.length > 0) payload.targetId = selectedTargetId;
     if (info.needsGuess) payload.guessRank = Number(els.guessSelect.value);
+    selectedCardId = null;
+    selectedTargetId = null;
     sendAction('playCard', payload);
   };
 }
 
 function renderRules() {
-  if (els.rulesList.dataset.rendered) return;
+  if (!els.rulesList || els.rulesList.dataset.rendered) return;
   const lines = [
     ['A / J', 'Guard', 'Guess another player’s card. You cannot guess Guard.'],
     ['2', 'Priest', 'Look at another player’s hand.'],
-    ['3', 'Baron', 'Compare hands. Lower card is eliminated.'],
+    ['3', 'Baron', 'Compare hands. Lower card is eliminated. Same value is a draw.'],
     ['4', 'Handmaid', 'Protection until your next turn.'],
     ['5', 'Prince', 'Chosen player discards and draws. Princess eliminates.'],
     ['6', 'King', 'Trade hands with another player.'],
@@ -371,10 +486,35 @@ function renderLog() {
     els.publicBurn.hidden = true;
   }
 
-  const logs = [...(state.logs || [])].slice(-18).reverse();
+  const logs = [...(state.logs || [])].slice(-22).reverse();
   els.logList.innerHTML = logs.map((log) => `
-    <div class="log-item ${log.type === 'elimination' ? 'elimination' : ''}">${escapeHtml(log.message)}</div>
+    <div class="log-item ${logClass(log)}">${escapeHtml(log.message)}</div>
   `).join('');
+}
+
+function logClass(log) {
+  if (log.type === 'elimination') return 'elimination';
+  if (log.type === 'baron-draw') return 'draw';
+  if (['guard-hit', 'baron-result', 'prince-princess', 'princess-played', 'round-win', 'game-over'].includes(log.type)) return 'important';
+  if (visibleActionTypes.includes(log.type)) return 'action';
+  return '';
+}
+
+
+function selectedCardFromState() {
+  return (state.ownHand || []).find((card) => card.id === selectedCardId) || null;
+}
+
+function isMyTurn() {
+  return state.status === 'playing' && state.activePlayerId === state.viewerId;
+}
+
+function latestVisibleLog() {
+  return [...(state.logs || [])].reverse().find((log) => !['turn'].includes(log.type)) || null;
+}
+
+function latestInteractiveLog() {
+  return [...(state.logs || [])].reverse().find((log) => log.actorId || log.targetId) || null;
 }
 
 function handleNewEvents(previous, current) {
@@ -393,17 +533,62 @@ function handleNewEvents(previous, current) {
   for (const log of newLogs) {
     if (log.type === 'elimination') {
       showToast(log.message, 'elimination');
-      showEliminationSpotlight(log.message);
-      spawnParticles();
-    }
-    if (log.type === 'round-win' || log.type === 'game-over') {
+      showSpotlight('Eliminated', log.message, '✕', 'danger');
+      spawnParticles(22);
+    } else if (visibleActionTypes.includes(log.type)) {
+      showToast(log.message, log.type === 'baron-draw' ? 'draw' : 'action');
+      showSpotlight(actionTitle(log.type), log.message, actionIcon(log.type), log.type === 'baron-draw' ? 'draw' : 'action');
+      if (['guard-hit', 'baron-result', 'prince-princess', 'princess-played'].includes(log.type)) {
+        spawnParticles(14);
+      }
+    } else if (log.type === 'round-win' || log.type === 'game-over') {
       showToast(log.message, 'win');
-      spawnParticles(24);
+      showSpotlight(log.type === 'game-over' ? 'Game won' : 'Round won', log.message, '★', 'win');
+      spawnParticles(28);
     }
   }
 
   lastEventId = Math.max(...logs.map((log) => log.id), lastEventId);
 }
+
+
+function actionTitle(type) {
+  const map = {
+    'guard-hit': 'Correct guess',
+    'guard-miss': 'Wrong guess',
+    'private-effect': 'Priest used',
+    'baron-result': 'Baron comparison',
+    'baron-draw': 'Baron draw',
+    'prince-redraw': 'Prince used',
+    'prince-princess': 'Princess discarded',
+    'king-trade': 'King trade',
+    protected: 'Handmaid used',
+    countess: 'Countess used',
+    'princess-played': 'Princess played',
+    'no-target': 'No target',
+  };
+  return map[type] || 'Action';
+}
+
+
+function actionIcon(type) {
+  const map = {
+    'guard-hit': '✓',
+    'guard-miss': '?',
+    'private-effect': '👁',
+    'baron-result': '⚔',
+    'baron-draw': '＝',
+    'prince-redraw': '↻',
+    'prince-princess': '✕',
+    'king-trade': '⇄',
+    protected: '◇',
+    countess: '7',
+    'princess-played': '8',
+    'no-target': '–',
+  };
+  return map[type] || '•';
+}
+
 
 function showToast(message, type = '') {
   const div = document.createElement('div');
@@ -417,19 +602,20 @@ function showToast(message, type = '') {
   }, 3600);
 }
 
-function showEliminationSpotlight(message) {
+function showSpotlight(title, message, icon = '•', type = '') {
   els.spotlight.hidden = false;
   els.spotlight.innerHTML = `
-    <div class="spotlight-card">
-      <div class="blast">✕</div>
-      <h2>Eliminated</h2>
+    <div class="spotlight-card ${type}">
+      <div class="blast">${escapeHtml(icon)}</div>
+      <h2>${escapeHtml(title)}</h2>
       <p class="muted">${escapeHtml(message)}</p>
     </div>
   `;
-  setTimeout(() => {
+  clearTimeout(showSpotlight.timer);
+  showSpotlight.timer = setTimeout(() => {
     els.spotlight.hidden = true;
     els.spotlight.innerHTML = '';
-  }, 1750);
+  }, 1550);
 }
 
 function spawnParticles(count = 16) {
@@ -470,6 +656,8 @@ function boot() {
   const urlRoom = normalizeRoom(new URL(window.location.href).searchParams.get('room'));
   els.nameInput.value = session.name || '';
   els.roomInput.value = urlRoom || session.roomCode || '';
+
+  renderRules();
 
   if (urlRoom && session.playerId && session.roomCode === urlRoom) {
     openStream(urlRoom, session.playerId);

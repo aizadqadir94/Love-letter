@@ -23,30 +23,42 @@
         </div>
       </header>
 
-      <section class="panel hero" id="entryPanel">
-        <div>
-          <p class="eyebrow">2–6 players</p>
-          <h2>Create a room or join with a code.</h2>
-          <p class="muted">Uses your custom deck: 3 Aces, 3 Jacks, three each of 2–5, two 6s, two 7s, and one 8.</p>
-        </div>
-
-        <form class="entry-grid" id="entryForm">
-          <label>
-            Your name
-            <input id="nameInput" maxlength="24" placeholder="Aizad" autocomplete="name" />
-          </label>
-          <label>
-            Room code
-            <input id="roomInput" maxlength="5" placeholder="ABCDE" autocomplete="off" />
-          </label>
-          <div class="button-row">
-            <button class="primary" id="createButton" type="button">Create room</button>
-            <button class="secondary" id="joinButton" type="button">Join room</button>
+      <section class="entry-wrap" id="entryPanel">
+        <section class="panel hero">
+          <div>
+            <p class="eyebrow">2–6 players</p>
+            <h2>Create a room or join with a code.</h2>
+            <p class="muted">Uses your custom deck: 3 Aces, 3 Jacks, three each of 2–5, two 6s, two 7s, and one 8.</p>
           </div>
-        </form>
+
+          <form class="entry-grid" id="entryForm">
+            <label>
+              Your name
+              <input id="nameInput" maxlength="24" placeholder="Aizad" autocomplete="name" />
+            </label>
+            <label>
+              Room code
+              <input id="roomInput" maxlength="5" placeholder="ABCDE" autocomplete="off" />
+            </label>
+            <div class="button-row">
+              <button class="primary" id="createButton" type="button">Create room</button>
+              <button class="secondary" id="joinButton" type="button">Join room</button>
+            </div>
+          </form>
+        </section>
+
+        <section class="panel rules-panel-entry">
+          <div class="section-title">
+            <div>
+              <p class="eyebrow">Before you start</p>
+              <h3>Card powers</h3>
+            </div>
+          </div>
+          <div class="rules-list" id="rulesList"></div>
+        </section>
       </section>
 
-      <section class="grid-layout" id="gamePanel" hidden>
+      <section class="game-layout" id="gamePanel" hidden>
         <section class="panel table-panel">
           <div class="table-header">
             <div>
@@ -56,7 +68,14 @@
             <div class="button-row compact" id="hostControls"></div>
           </div>
 
-          <div class="players-grid" id="playersGrid"></div>
+          <div class="poker-table" id="playersGrid">
+            <div class="table-felt"></div>
+            <div class="table-center">
+              <p class="turn-prompt" id="turnPrompt">Waiting</p>
+              <div class="latest-action" id="latestAction">No actions yet.</div>
+              <span class="deck-count" id="deckCount">Deck: —</span>
+            </div>
+          </div>
 
           <div class="round-result" id="roundResult" hidden></div>
         </section>
@@ -65,7 +84,7 @@
           <section class="panel hand-panel">
             <div class="section-title">
               <div>
-                <p class="eyebrow">Your hand</p>
+                <p class="eyebrow">Your turn area</p>
                 <h3 id="handTitle">Waiting</h3>
               </div>
             </div>
@@ -73,10 +92,7 @@
             <div class="countess-warning" id="countessWarning" hidden>Countess rule active: you must play a 7.</div>
             <div class="hand" id="hand"></div>
             <div class="action-box" id="actionBox" hidden>
-              <label id="targetLabel">
-                Target
-                <select id="targetSelect"></select>
-              </label>
+              <div class="action-hint" id="actionHint">Select a card.</div>
               <label id="guessLabel" hidden>
                 Guess
                 <select id="guessSelect">
@@ -89,27 +105,16 @@
                   <option value="8">8 — Princess</option>
                 </select>
               </label>
-              <button class="primary wide" id="playButton" type="button">Play selected card</button>
+              <button class="primary wide" id="playButton" type="button">Play card</button>
             </div>
-          </section>
-
-          <section class="panel rules-panel">
-            <div class="section-title">
-              <div>
-                <p class="eyebrow">Deck rules</p>
-                <h3>Card powers</h3>
-              </div>
-            </div>
-            <div class="rules-list" id="rulesList"></div>
           </section>
 
           <section class="panel log-panel">
             <div class="section-title">
               <div>
-                <p class="eyebrow">Game log</p>
-                <h3>Latest actions</h3>
+                <p class="eyebrow">Visible to everyone</p>
+                <h3>Game log</h3>
               </div>
-              <span class="deck-count" id="deckCount">Deck: —</span>
             </div>
             <div class="public-burn" id="publicBurn" hidden></div>
             <div class="log-list" id="logList"></div>
