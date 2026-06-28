@@ -1,6 +1,6 @@
 # Love Letter Online — Normal Deck Version
 
-A deployable online version of your custom Love Letter rules, designed for GitHub + Render.
+A deployable online version of your custom Love Letter rules, designed for GitHub + Render. The in-game layout uses a poker-table view so every player can see seats, turns, targets, public actions, eliminations, and round results.
 
 ## Custom deck
 
@@ -24,7 +24,7 @@ Total: **23 cards**. No Queens.
 
 - **A / J — Guard:** Guess another player's card. You cannot guess Guard, so guesses are only 2–8.
 - **2 — Priest:** Look privately at another player's hand.
-- **3 — Baron:** Compare hands. Lower card is eliminated.
+- **3 — Baron:** Compare hands. Lower card is eliminated. Equal values are shown publicly as a draw.
 - **4 — Handmaid:** Protected until your next turn.
 - **5 — Prince:** Chosen player, including yourself, discards and draws. Discarding 8 eliminates that player.
 - **6 — King:** Trade hands with another player.
@@ -50,7 +50,7 @@ http://localhost:3000
 npm test
 ```
 
-The test suite checks deck composition, Countess enforcement, Handmaid protection, Guard behavior, Prince/Princess elimination, and HTTP room flow.
+The test suite checks deck composition, Countess enforcement, Handmaid protection, Guard behavior, Baron draw behavior, Prince/Princess elimination, Priest privacy, and HTTP room flow.
 
 ## Deploy to Render
 

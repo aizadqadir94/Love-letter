@@ -465,6 +465,19 @@ function playCard(room, playerId, payload = {}) {
     throw new Error('Countess rule: if you hold a 7 with a 5 or 6, you must play the 7.');
   }
 
+  const info = CARD_INFO[card.rank];
+  const targets = validTargets(room, active, card.rank);
+  if (info.needsGuess) {
+    const guess = Number(guessRank);
+    if (!Number.isInteger(guess) || guess < 2 || guess > 8) throw new Error('Guard must guess 2, 3, 4, 5, 6, 7, or 8.');
+  }
+  if (info.needsTarget && targets.length > 0) {
+    const princeSelfDefault = card.rank === 5 && !targetId;
+    if (!princeSelfDefault && !targets.some((target) => target.id === targetId)) {
+      throw new Error('Choose a valid target. Protected or eliminated players cannot be targeted.');
+    }
+  }
+
   active.hand.splice(cardIndex, 1);
   discardCard(active, card, 'Played');
   resolvePlayedCard(room, active, card, { targetId, guessRank });
@@ -482,41 +495,65 @@ function playCard(room, playerId, payload = {}) {
   touch(room);
 }
 
+function addPlayLog(room, active, card) {
+  addLog(room, 'play', `${active.name} played ${card.face} (${card.role}).`, {
+    actorId: active.id,
+    actorName: active.name,
+    card: publicCard(card),
+  });
+}
+
+function actionPhrase(active, card, target = null) {
+  const targetText = target ? ` on ${target.name}` : '';
+  return `${active.name} used ${card.face} (${card.role})${targetText}.`;
+}
+
+function addTargetLog(room, type, message, active, target, card, extra = {}) {
+  addLog(room, type, message, {
+    actorId: active.id,
+    actorName: active.name,
+    targetId: target ? target.id : null,
+    targetName: target ? target.name : null,
+    card: publicCard(card),
+    ...extra,
+  });
+}
+
 function resolvePlayedCard(room, active, card, payload) {
   const rank = card.rank;
-  addLog(room, 'play', `${active.name} played ${card.face} (${card.role}).`);
+  addPlayLog(room, active, card);
 
   if (rank === 8) {
+    addTargetLog(room, 'princess-played', `${actionPhrase(active, card)} The Princess was played, so ${active.name} is eliminated.`, active, active, card);
     eliminate(room, active, 'The Princess was played or discarded.', active);
     return;
   }
 
   if (rank === 7) {
-    addLog(room, 'effect', `${active.name} played Countess. No effect.`);
+    addTargetLog(room, 'countess', `${actionPhrase(active, card)} No effect.`, active, null, card);
     return;
   }
 
   if (rank === 4) {
     active.protected = true;
-    addLog(room, 'effect', `${active.name} is protected until their next turn.`);
+    addTargetLog(room, 'protected', `${actionPhrase(active, card)} ${active.name} is protected until their next turn.`, active, active, card);
     return;
   }
 
   if (rank === 1) {
     const targets = validTargets(room, active, rank);
     if (targets.length === 0) {
-      addLog(room, 'effect', 'Guard had no valid targets.');
+      addTargetLog(room, 'no-target', `${actionPhrase(active, card)} There was no valid target.`, active, null, card);
       return;
     }
     const target = requireTarget(room, active, payload.targetId, rank);
     const guess = Number(payload.guessRank);
-    if (!Number.isInteger(guess) || guess < 2 || guess > 8) throw new Error('Guard must guess 2, 3, 4, 5, 6, 7, or 8.');
     const targetCard = target.hand[0];
     if (targetCard && targetCard.rank === guess) {
-      addLog(room, 'effect', `${active.name} guessed ${target.name} had a ${guess}. Correct.`);
+      addTargetLog(room, 'guard-hit', `${actionPhrase(active, card, target)} ${active.name} guessed ${guess}. Correct.`, active, target, card, { guessRank: guess });
       eliminate(room, target, `Guard guessed ${guess}.`, active);
     } else {
-      addLog(room, 'effect', `${active.name} guessed ${target.name} had a ${guess}. Wrong.`);
+      addTargetLog(room, 'guard-miss', `${actionPhrase(active, card, target)} ${active.name} guessed ${guess}. Wrong.`, active, target, card, { guessRank: guess });
     }
     return;
   }
@@ -524,7 +561,7 @@ function resolvePlayedCard(room, active, card, payload) {
   if (rank === 2) {
     const targets = validTargets(room, active, rank);
     if (targets.length === 0) {
-      addLog(room, 'effect', 'Priest had no valid targets.');
+      addTargetLog(room, 'no-target', `${actionPhrase(active, card)} There was no valid target.`, active, null, card);
       return;
     }
     const target = requireTarget(room, active, payload.targetId, rank);
@@ -532,31 +569,31 @@ function resolvePlayedCard(room, active, card, payload) {
     active.privateNotice = seen
       ? `You looked at ${target.name}: ${seen.face} (${seen.role}).`
       : `You looked at ${target.name}: no card.`;
-    addLog(room, 'private-effect', `${active.name} looked at ${target.name}’s hand.`);
+    addTargetLog(room, 'private-effect', `${actionPhrase(active, card, target)} Only ${active.name} saw the card.`, active, target, card);
     return;
   }
 
   if (rank === 3) {
     const targets = validTargets(room, active, rank);
     if (targets.length === 0) {
-      addLog(room, 'effect', 'Baron had no valid targets.');
+      addTargetLog(room, 'no-target', `${actionPhrase(active, card)} There was no valid target.`, active, null, card);
       return;
     }
     const target = requireTarget(room, active, payload.targetId, rank);
     const activeCard = active.hand[0];
     const targetCard = target.hand[0];
     if (!activeCard || !targetCard) {
-      addLog(room, 'effect', 'Baron comparison failed because a player had no card.');
+      addTargetLog(room, 'baron-draw', `${actionPhrase(active, card, target)} Comparison failed because a player had no card.`, active, target, card);
       return;
     }
     if (activeCard.rank > targetCard.rank) {
-      addLog(room, 'effect', `${active.name} compared hands with ${target.name}. ${target.name} had the lower card.`);
+      addTargetLog(room, 'baron-result', `${actionPhrase(active, card, target)} ${target.name} had the lower card.`, active, target, card, { outcome: 'target-eliminated' });
       eliminate(room, target, 'Lost a Baron comparison.', active);
     } else if (activeCard.rank < targetCard.rank) {
-      addLog(room, 'effect', `${active.name} compared hands with ${target.name}. ${active.name} had the lower card.`);
+      addTargetLog(room, 'baron-result', `${actionPhrase(active, card, target)} ${active.name} had the lower card.`, active, target, card, { outcome: 'actor-eliminated' });
       eliminate(room, active, 'Lost a Baron comparison.', target);
     } else {
-      addLog(room, 'effect', `${active.name} compared hands with ${target.name}. Tie: nobody was eliminated.`);
+      addTargetLog(room, 'baron-draw', `${actionPhrase(active, card, target)} Draw: nobody was eliminated.`, active, target, card, { outcome: 'draw' });
     }
     return;
   }
@@ -571,7 +608,7 @@ function resolvePlayedCard(room, active, card, payload) {
     const discarded = target.hand.pop();
     discardCard(target, discarded, 'Prince');
     if (discarded && discarded.rank === 8) {
-      addLog(room, 'effect', `${target.name} discarded the Princess because of Prince.`);
+      addTargetLog(room, 'prince-princess', `${actionPhrase(active, card, target)} ${target.name} discarded the Princess and is eliminated.`, active, target, card);
       eliminate(room, target, 'Discarded the Princess because of Prince.', active);
       return;
     }
@@ -582,21 +619,21 @@ function resolvePlayedCard(room, active, card, payload) {
       room.burn = null;
     }
     if (replacement) target.hand.push(replacement);
-    addLog(room, 'effect', `${target.name} discarded and drew a new card.`);
+    addTargetLog(room, 'prince-redraw', `${actionPhrase(active, card, target)} ${target.name} discarded and drew a new card.`, active, target, card);
     return;
   }
 
   if (rank === 6) {
     const targets = validTargets(room, active, rank);
     if (targets.length === 0) {
-      addLog(room, 'effect', 'King had no valid targets.');
+      addTargetLog(room, 'no-target', `${actionPhrase(active, card)} There was no valid target.`, active, null, card);
       return;
     }
     const target = requireTarget(room, active, payload.targetId, rank);
     [active.hand, target.hand] = [target.hand, active.hand];
     active.privateNotice = `You traded hands with ${target.name}.`;
     target.privateNotice = `${active.name} traded hands with you.`;
-    addLog(room, 'effect', `${active.name} traded hands with ${target.name}.`);
+    addTargetLog(room, 'king-trade', `${actionPhrase(active, card, target)} They traded hands.`, active, target, card);
   }
 }
 
