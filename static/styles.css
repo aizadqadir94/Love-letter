@@ -1041,3 +1041,193 @@ h3 {
     flex-wrap: wrap;
   }
 }
+
+/* Table-only play area: cards and actions stay on the poker table. */
+.game-layout {
+  display: block;
+}
+
+.table-panel,
+.rules-panel-entry {
+  padding: 1rem;
+}
+
+.table-panel {
+  min-height: calc(100vh - 155px);
+}
+
+.poker-table {
+  height: clamp(650px, 76vh, 820px);
+  min-height: 650px;
+}
+
+.table-center {
+  width: min(560px, 46%);
+  min-height: 260px;
+  align-content: center;
+  place-items: stretch;
+  text-align: center;
+  z-index: 2;
+}
+
+.table-hand-zone {
+  display: grid;
+  gap: 0.55rem;
+  width: 100%;
+}
+
+.table-hand-zone .eyebrow {
+  margin-bottom: 0;
+}
+
+.table-hand-zone h3 {
+  font-size: 0.95rem;
+  color: var(--muted);
+}
+
+.table-hand-zone .private-notice,
+.table-hand-zone .countess-warning,
+.table-hand-zone .action-hint {
+  margin-bottom: 0;
+  padding: 0.58rem;
+  border-radius: 13px;
+  font-size: 0.82rem;
+}
+
+.table-hand-zone .hand {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.55rem;
+}
+
+.table-hand-zone .playing-card {
+  min-height: 132px;
+  border-radius: 16px;
+  padding: 0.65rem;
+}
+
+.table-hand-zone .card-face {
+  font-size: 1.55rem;
+}
+
+.table-hand-zone .card-role strong {
+  font-size: 0.92rem;
+  margin-bottom: 0.2rem;
+}
+
+.table-hand-zone .card-role span {
+  font-size: 0.72rem;
+  line-height: 1.22;
+}
+
+.table-hand-zone .action-box {
+  gap: 0.55rem;
+  margin-top: 0;
+}
+
+.table-hand-zone select {
+  padding: 0.58rem 0.7rem;
+  border-radius: 12px;
+}
+
+.table-hand-zone .primary {
+  padding: 0.66rem 0.8rem;
+}
+
+.public-burn {
+  margin-bottom: 0;
+  font-size: 0.78rem;
+}
+
+@media (max-width: 980px) {
+  .poker-table {
+    height: 690px;
+    min-height: 690px;
+  }
+
+  .table-center {
+    width: min(460px, 52%);
+    min-height: 250px;
+  }
+}
+
+@media (max-width: 720px) {
+  .poker-table {
+    height: 690px;
+    min-height: 690px;
+  }
+
+  .table-center {
+    top: 52%;
+    width: 56%;
+    min-height: 245px;
+    padding: 0.58rem;
+  }
+
+  .latest-action {
+    display: block;
+    font-size: 0.74rem;
+    line-height: 1.25;
+  }
+
+  .deck-count,
+  .public-burn {
+    font-size: 0.68rem;
+  }
+
+  .table-hand-zone h3 {
+    font-size: 0.78rem;
+  }
+
+  .table-hand-zone .hand {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.38rem;
+  }
+
+  .table-hand-zone .playing-card {
+    min-height: 106px;
+    padding: 0.5rem;
+    border-radius: 13px;
+  }
+
+  .table-hand-zone .card-face {
+    font-size: 1.15rem;
+  }
+
+  .table-hand-zone .card-role strong {
+    font-size: 0.76rem;
+  }
+
+  .table-hand-zone .card-role span {
+    display: none;
+  }
+
+  .table-hand-zone .private-notice,
+  .table-hand-zone .countess-warning,
+  .table-hand-zone .action-hint {
+    font-size: 0.72rem;
+    padding: 0.45rem;
+  }
+
+  .table-hand-zone select {
+    padding: 0.5rem;
+    font-size: 0.78rem;
+  }
+
+  .table-hand-zone .primary {
+    padding: 0.55rem 0.65rem;
+    font-size: 0.78rem;
+  }
+}
+
+@media (max-width: 430px) {
+  .poker-table {
+    height: 670px;
+    min-height: 670px;
+  }
+
+  .table-center {
+    top: 52%;
+    width: 58%;
+    min-height: 235px;
+  }
+}

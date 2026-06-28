@@ -74,52 +74,36 @@
               <p class="turn-prompt" id="turnPrompt">Waiting</p>
               <div class="latest-action" id="latestAction">No actions yet.</div>
               <span class="deck-count" id="deckCount">Deck: —</span>
+              <div class="public-burn" id="publicBurn" hidden></div>
+
+              <div class="table-hand-zone" id="tableHandZone">
+                <p class="eyebrow">Your cards</p>
+                <h3 id="handTitle">Waiting</h3>
+                <div class="private-notice" id="privateNotice" hidden></div>
+                <div class="countess-warning" id="countessWarning" hidden>Countess rule active: you must play a 7.</div>
+                <div class="hand" id="hand"></div>
+                <div class="action-box" id="actionBox" hidden>
+                  <div class="action-hint" id="actionHint">Select a card.</div>
+                  <label id="guessLabel" hidden>
+                    Guess
+                    <select id="guessSelect">
+                      <option value="2">2 — Priest</option>
+                      <option value="3">3 — Baron</option>
+                      <option value="4">4 — Handmaid</option>
+                      <option value="5">5 — Prince</option>
+                      <option value="6">6 — King</option>
+                      <option value="7">7 — Countess</option>
+                      <option value="8">8 — Princess</option>
+                    </select>
+                  </label>
+                  <button class="primary wide" id="playButton" type="button">Play card</button>
+                </div>
+              </div>
             </div>
           </div>
 
           <div class="round-result" id="roundResult" hidden></div>
         </section>
-
-        <aside class="side-stack">
-          <section class="panel hand-panel">
-            <div class="section-title">
-              <div>
-                <p class="eyebrow">Your turn area</p>
-                <h3 id="handTitle">Waiting</h3>
-              </div>
-            </div>
-            <div class="private-notice" id="privateNotice" hidden></div>
-            <div class="countess-warning" id="countessWarning" hidden>Countess rule active: you must play a 7.</div>
-            <div class="hand" id="hand"></div>
-            <div class="action-box" id="actionBox" hidden>
-              <div class="action-hint" id="actionHint">Select a card.</div>
-              <label id="guessLabel" hidden>
-                Guess
-                <select id="guessSelect">
-                  <option value="2">2 — Priest</option>
-                  <option value="3">3 — Baron</option>
-                  <option value="4">4 — Handmaid</option>
-                  <option value="5">5 — Prince</option>
-                  <option value="6">6 — King</option>
-                  <option value="7">7 — Countess</option>
-                  <option value="8">8 — Princess</option>
-                </select>
-              </label>
-              <button class="primary wide" id="playButton" type="button">Play card</button>
-            </div>
-          </section>
-
-          <section class="panel log-panel">
-            <div class="section-title">
-              <div>
-                <p class="eyebrow">Visible to everyone</p>
-                <h3>Game log</h3>
-              </div>
-            </div>
-            <div class="public-burn" id="publicBurn" hidden></div>
-            <div class="log-list" id="logList"></div>
-          </section>
-        </aside>
       </section>
     </main>
 

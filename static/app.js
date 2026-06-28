@@ -27,7 +27,6 @@ const els = {
   rulesList: document.getElementById('rulesList'),
   deckCount: document.getElementById('deckCount'),
   publicBurn: document.getElementById('publicBurn'),
-  logList: document.getElementById('logList'),
   toastZone: document.getElementById('toastZone'),
   spotlight: document.getElementById('spotlight'),
 };
@@ -404,46 +403,55 @@ function renderActionBox(mine, selectedCard) {
     els.guessLabel.hidden = true;
     els.playButton.disabled = true;
     els.playButton.textContent = 'Waiting';
+    els.playButton.onclick = null;
     return;
   }
 
   if (!selectedCard) {
-    els.actionHint.textContent = 'Step 1: select one of your two cards.';
+    els.actionHint.textContent = 'Step 1: tap one of your two cards on the table.';
     els.guessLabel.hidden = true;
     els.playButton.disabled = true;
     els.playButton.textContent = 'Select a card first';
+    els.playButton.onclick = null;
     return;
   }
 
   const info = state.cards[selectedCard.rank];
   const targetIds = state.validTargets?.[selectedCard.id] || [];
   const targets = state.players.filter((player) => targetIds.includes(player.id));
+  const selfOnlyPrince = selectedCard.rank === 5 && targetIds.length === 1 && targetIds[0] === state.viewerId;
   if (selectedTargetId && !targetIds.includes(selectedTargetId)) selectedTargetId = null;
+  if (selfOnlyPrince) selectedTargetId = state.viewerId;
 
   els.guessLabel.hidden = !info.needsGuess;
 
   if (info.needsTarget && targets.length > 0 && !selectedTargetId) {
-    els.actionHint.textContent = `Step 2: tap a target on the poker table for ${selectedCard.role}.`;
+    els.actionHint.textContent = `Step 2: tap a highlighted player on the poker table for ${selectedCard.role}.`;
     els.playButton.disabled = true;
     els.playButton.textContent = 'Select a target';
+    els.playButton.onclick = null;
     return;
   }
 
   if (info.needsTarget && targets.length === 0) {
-    els.actionHint.textContent = `${selectedCard.role} has no valid targets, so it will have no effect.`;
+    els.guessLabel.hidden = true;
+    els.actionHint.textContent = `${selectedCard.role} has no valid target because everyone else is protected. It will be played with no effect.`;
     els.playButton.disabled = false;
-    els.playButton.textContent = 'Play card — no valid targets';
-    return;
-  }
-
-  if (info.needsTarget) {
+    els.playButton.textContent = 'Play card — no effect';
+  } else if (selfOnlyPrince) {
+    els.actionHint.textContent = 'The only valid Prince target is you. Play to discard your own card and redraw.';
+    els.playButton.disabled = false;
+    els.playButton.textContent = 'Play Prince on yourself';
+  } else if (info.needsTarget) {
     const target = state.players.find((player) => player.id === selectedTargetId);
     els.actionHint.textContent = `Ready: play ${selectedCard.face} on ${target ? target.name : 'selected target'}.`;
+    els.playButton.disabled = false;
+    els.playButton.textContent = 'Play selected card';
   } else {
     els.actionHint.textContent = `Ready: play ${selectedCard.face}.`;
+    els.playButton.disabled = false;
+    els.playButton.textContent = 'Play selected card';
   }
-  els.playButton.disabled = false;
-  els.playButton.textContent = 'Play selected card';
 
   els.playButton.onclick = () => {
     const payload = { cardId: selectedCard.id };
@@ -481,23 +489,10 @@ function renderLog() {
 
   if (state.publicBurn?.length) {
     els.publicBurn.hidden = false;
-    els.publicBurn.innerHTML = `2-player public removed cards: ${state.publicBurn.map((card) => `<strong>${escapeHtml(card.face)}</strong>`).join(' ')}`;
+    els.publicBurn.innerHTML = `2-player public removed: ${state.publicBurn.map((card) => `<strong>${escapeHtml(card.face)}</strong>`).join(' ')}`;
   } else {
     els.publicBurn.hidden = true;
   }
-
-  const logs = [...(state.logs || [])].slice(-22).reverse();
-  els.logList.innerHTML = logs.map((log) => `
-    <div class="log-item ${logClass(log)}">${escapeHtml(log.message)}</div>
-  `).join('');
-}
-
-function logClass(log) {
-  if (log.type === 'elimination') return 'elimination';
-  if (log.type === 'baron-draw') return 'draw';
-  if (['guard-hit', 'baron-result', 'prince-princess', 'princess-played', 'round-win', 'game-over'].includes(log.type)) return 'important';
-  if (visibleActionTypes.includes(log.type)) return 'action';
-  return '';
 }
 
 
