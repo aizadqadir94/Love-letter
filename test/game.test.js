@@ -96,7 +96,36 @@ async function runHttpTest() {
     });
     assert.strictEqual(action.state.status, 'playing');
     assert.strictEqual(action.state.players.length, 2);
-    assert.ok(action.state.deckCount >= 0);
+    assert.strictEqual(action.state.ownHand.length, 2, 'active host should have two cards after start');
+
+    const guestState = await request(base, `/api/state?room=${created.roomCode}&player=${joined.playerId}`);
+    assert.strictEqual(guestState.state.status, 'playing');
+    assert.strictEqual(guestState.state.ownHand.length, 1, 'waiting guest should have one card after start');
+    assert.strictEqual(guestState.state.players.find((p) => p.id === joined.playerId).handCount, 1);
+
+    const legalHand = action.state.mustPlayCountess
+      ? action.state.ownHand.filter((c) => c.rank === 7)
+      : action.state.ownHand;
+    const card = legalHand.find((c) => {
+      const info = action.state.cards[c.rank];
+      return !info.needsTarget || (action.state.validTargets[c.id] || []).length > 0;
+    }) || legalHand[0];
+    const info = action.state.cards[card.rank];
+    const payload = { cardId: card.id };
+    if (info.needsTarget && (action.state.validTargets[card.id] || []).length > 0) {
+      payload.targetId = action.state.validTargets[card.id][0];
+    }
+    if (info.needsGuess) payload.guessRank = 2;
+    await request(base, '/api/action', 'POST', {
+      roomCode: created.roomCode,
+      playerId: created.playerId,
+      action: 'playCard',
+      payload,
+    });
+    const guestTurnState = await request(base, `/api/state?room=${created.roomCode}&player=${joined.playerId}`);
+    if (guestTurnState.state.status === 'playing' && guestTurnState.state.activePlayerId === joined.playerId) {
+      assert.strictEqual(guestTurnState.state.ownHand.length, 2, 'guest should draw to two cards on their turn');
+    }
   } finally {
     rooms.clear();
     await new Promise((resolve) => server.close(resolve));
