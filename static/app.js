@@ -258,8 +258,9 @@ function makeButton(text, className, onClick) {
 function renderPlayers() {
   const felt = els.playersGrid.querySelector('.table-felt');
   const center = els.playersGrid.querySelector('.table-center');
+  const handZone = document.getElementById('tableHandZone');
   els.playersGrid.innerHTML = '';
-  els.playersGrid.append(felt, center);
+  els.playersGrid.append(felt, center, handZone);
 
   const orderedPlayers = orderedSeatPlayers();
   const latest = latestInteractiveLog();
@@ -278,7 +279,7 @@ function renderPlayers() {
     const isTargetable = isMyTurn() && selectedCard && targetIds.includes(player.id);
     if (player.id === state.activePlayerId) button.classList.add('active');
     if (!player.alive && state.status !== 'lobby') button.classList.add('eliminated');
-    if (player.isYou) button.classList.add('you');
+    if (player.isYou) button.classList.add('you', 'self-seat');
     if (isTargetable) button.classList.add('targetable');
     if (selectedTargetId === player.id) button.classList.add('target-selected');
     if (latest?.actorId === player.id) button.classList.add('recent-actor');
@@ -299,13 +300,13 @@ function renderPlayers() {
       selectedTargetId === player.id ? '<span class="badge target-badge">Selected</span>' : '',
     ].join('');
 
-    const visibleHand = player.visibleHand?.length
-      ? player.visibleHand.map((c) => `<span class="mini-card revealed" title="${escapeHtml(c.role)}">${escapeHtml(c.face)}</span>`).join('')
-      : Array.from({ length: player.handCount || 0 }, () => '<span class="mini-card">?</span>').join('');
+    const handPreview = player.visibleHand?.length
+      ? `<div class="mini-cards">${player.visibleHand.map((c) => `<span class="mini-card revealed" title="${escapeHtml(c.role)}">${escapeHtml(c.face)}</span>`).join('')}</div>`
+      : `<div class="seat-note"><span class="mini-card">?</span><span>${player.isYou ? 'Your cards are in the play tray.' : `${player.handCount || 0} hidden card${(player.handCount || 0) === 1 ? '' : 's'}`}</span></div>`;
 
     const discards = player.discards?.length
-      ? `<div class="discard-row">${player.discards.slice(-6).map((c) => `<span class="mini-card revealed" title="${escapeHtml(c.role)}">${escapeHtml(c.face)}</span>`).join('')}</div>`
-      : '<div class="discard-row"><span class="muted tiny">No discards</span></div>';
+      ? `<div class="discard-row">${player.discards.slice(-4).map((c) => `<span class="mini-card revealed" title="${escapeHtml(c.role)}">${escapeHtml(c.face)}</span>`).join('')}</div>`
+      : '<div class="seat-subtle">No discards</div>';
 
     button.innerHTML = `
       <div class="player-top">
@@ -315,7 +316,7 @@ function renderPlayers() {
         </div>
         <div class="score-dots" title="${player.score}/${state.targetScore}">${scoreDots}</div>
       </div>
-      <div class="mini-cards">${visibleHand || '<span class="muted tiny">No hand</span>'}</div>
+      ${handPreview}
       ${discards}
     `;
 
@@ -340,12 +341,12 @@ function orderedSeatPlayers() {
 
 function getSeatPosition(index, count) {
   const maps = {
-    1: [{ x: 50, y: 82 }],
-    2: [{ x: 50, y: 83 }, { x: 50, y: 16 }],
-    3: [{ x: 50, y: 83 }, { x: 18, y: 30 }, { x: 82, y: 30 }],
-    4: [{ x: 50, y: 84 }, { x: 15, y: 50 }, { x: 50, y: 15 }, { x: 85, y: 50 }],
-    5: [{ x: 50, y: 84 }, { x: 15, y: 64 }, { x: 20, y: 24 }, { x: 80, y: 24 }, { x: 85, y: 64 }],
-    6: [{ x: 50, y: 84 }, { x: 16, y: 66 }, { x: 16, y: 32 }, { x: 50, y: 15 }, { x: 84, y: 32 }, { x: 84, y: 66 }],
+    1: [{ x: 50, y: 88 }],
+    2: [{ x: 50, y: 88 }, { x: 50, y: 13 }],
+    3: [{ x: 50, y: 88 }, { x: 21, y: 27 }, { x: 79, y: 27 }],
+    4: [{ x: 50, y: 88 }, { x: 12, y: 50 }, { x: 50, y: 12 }, { x: 88, y: 50 }],
+    5: [{ x: 50, y: 88 }, { x: 15, y: 68 }, { x: 24, y: 24 }, { x: 76, y: 24 }, { x: 85, y: 68 }],
+    6: [{ x: 50, y: 88 }, { x: 14, y: 70 }, { x: 14, y: 30 }, { x: 50, y: 12 }, { x: 86, y: 30 }, { x: 86, y: 70 }],
   };
   return (maps[count] || maps[6])[index] || { x: 50, y: 50 };
 }
@@ -359,7 +360,7 @@ function renderHand() {
     selectedTargetId = null;
   }
 
-  els.handTitle.textContent = mine ? 'Select a card, then select a player on the table' : (state.status === 'playing' ? 'Waiting for your turn' : 'Round not active');
+  els.handTitle.textContent = mine ? 'Tap a card below, then tap a highlighted player' : (state.status === 'playing' ? 'Waiting for your turn' : 'Round not active');
   els.privateNotice.hidden = !state.privateNotice;
   els.privateNotice.textContent = state.privateNotice || '';
   els.countessWarning.hidden = !state.mustPlayCountess;

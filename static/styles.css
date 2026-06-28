@@ -1231,3 +1231,346 @@ h3 {
     min-height: 235px;
   }
 }
+
+/* --- polished mobile-first poker table refresh --- */
+.table-panel {
+  min-height: calc(100vh - 155px);
+}
+
+.poker-table {
+  height: clamp(720px, 84vh, 900px);
+  min-height: 720px;
+  border-radius: 30px;
+}
+
+.table-center {
+  top: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: min(620px, calc(100% - 34px));
+  min-height: auto;
+  padding: 0.85rem 1rem;
+  gap: 0.45rem;
+  border-radius: 22px;
+  background: rgba(8, 12, 22, 0.88);
+  backdrop-filter: blur(14px);
+  box-shadow: 0 16px 45px rgba(0, 0, 0, 0.25);
+  z-index: 4;
+}
+
+.turn-prompt {
+  font-size: clamp(1.05rem, 2vw, 1.45rem);
+}
+
+.latest-action {
+  color: #dde5f7;
+  font-size: 0.92rem;
+  line-height: 1.4;
+}
+
+.public-burn {
+  margin-top: -0.1rem;
+}
+
+.table-hand-zone {
+  position: absolute;
+  left: 50%;
+  bottom: 18px;
+  transform: translateX(-50%);
+  z-index: 6;
+  width: min(640px, calc(100% - 30px));
+  display: grid;
+  gap: 0.65rem;
+  padding: 0.95rem 1rem;
+  border-radius: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(7, 10, 18, 0.94);
+  box-shadow: 0 24px 50px rgba(0, 0, 0, 0.34);
+}
+
+.table-hand-zone h3 {
+  color: var(--text);
+  font-size: 1rem;
+}
+
+.table-hand-zone .hand {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.7rem;
+}
+
+.table-hand-zone .playing-card {
+  min-height: 162px;
+  padding: 0.8rem;
+}
+
+.table-hand-zone .card-role span {
+  display: block;
+}
+
+.table-hand-zone .action-box {
+  margin-top: 0.2rem;
+}
+
+.player-seat {
+  width: 172px;
+  min-height: 114px;
+  padding: 0.7rem;
+  border-radius: 18px;
+  background: linear-gradient(160deg, rgba(24, 29, 48, 0.92), rgba(13, 17, 31, 0.86));
+  backdrop-filter: blur(10px);
+}
+
+.player-seat.self-seat {
+  width: 190px;
+}
+
+.player-top {
+  margin-bottom: 0.45rem;
+}
+
+.player-name {
+  max-width: 120px;
+  font-size: 0.98rem;
+}
+
+.seat-note,
+.seat-subtle {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: var(--muted);
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+
+.seat-subtle {
+  margin-top: 0.45rem;
+  font-size: 0.72rem;
+  opacity: 0.92;
+}
+
+.discard-row {
+  margin-top: 0.42rem;
+}
+
+.discard-row .mini-card,
+.seat-note .mini-card {
+  width: 24px;
+  height: 32px;
+  border-radius: 7px;
+  font-size: 0.62rem;
+}
+
+@media (max-width: 980px) {
+  .poker-table {
+    height: 760px;
+    min-height: 760px;
+  }
+
+  .player-seat {
+    width: 154px;
+    min-height: 105px;
+    padding: 0.6rem;
+  }
+
+  .player-seat.self-seat {
+    width: 176px;
+  }
+
+  .table-hand-zone {
+    width: min(560px, calc(100% - 24px));
+  }
+}
+
+@media (max-width: 720px) {
+  .table-panel {
+    padding: 0.8rem;
+    min-height: unset;
+  }
+
+  .table-header {
+    margin-bottom: 0.75rem;
+  }
+
+  .poker-table {
+    height: 820px;
+    min-height: 820px;
+  }
+
+  .table-felt {
+    inset: 18% 6% 23% 6%;
+    border-width: 8px;
+  }
+
+  .table-center {
+    top: 12px;
+    width: calc(100% - 16px);
+    padding: 0.7rem 0.8rem;
+    border-radius: 18px;
+  }
+
+  .turn-prompt {
+    font-size: 1rem;
+  }
+
+  .latest-action {
+    display: block;
+    font-size: 0.82rem;
+    line-height: 1.35;
+  }
+
+  .deck-count,
+  .public-burn {
+    font-size: 0.72rem;
+  }
+
+  .table-hand-zone {
+    width: calc(100% - 16px);
+    bottom: 12px;
+    padding: 0.8rem;
+    border-radius: 18px;
+    gap: 0.55rem;
+  }
+
+  .table-hand-zone h3 {
+    font-size: 0.92rem;
+  }
+
+  .table-hand-zone .playing-card {
+    min-height: 136px;
+    padding: 0.65rem;
+    border-radius: 15px;
+  }
+
+  .table-hand-zone .card-face {
+    font-size: 1.4rem;
+  }
+
+  .table-hand-zone .card-role strong {
+    font-size: 0.92rem;
+  }
+
+  .table-hand-zone .card-role span {
+    font-size: 0.72rem;
+  }
+
+  .player-seat {
+    width: 122px;
+    min-height: 88px;
+    padding: 0.48rem;
+    border-radius: 14px;
+  }
+
+  .player-seat.self-seat {
+    width: 148px;
+  }
+
+  .player-seat.active::before {
+    left: 8px;
+    top: -11px;
+    font-size: 0.54rem;
+  }
+
+  .player-name {
+    max-width: 72px;
+    font-size: 0.82rem;
+  }
+
+  .badges {
+    gap: 0.2rem;
+    margin-top: 0.28rem;
+  }
+
+  .badge {
+    padding: 0.12rem 0.28rem;
+    font-size: 0.5rem;
+  }
+
+  .score-dots {
+    gap: 0.16rem;
+    max-width: 40px;
+    flex-wrap: wrap;
+  }
+
+  .dot {
+    width: 7px;
+    height: 7px;
+  }
+
+  .seat-note,
+  .seat-subtle {
+    font-size: 0.64rem;
+    gap: 0.3rem;
+  }
+
+  .discard-row {
+    display: none;
+  }
+
+  .seat-note .mini-card {
+    width: 18px;
+    height: 24px;
+    font-size: 0.56rem;
+    border-radius: 6px;
+  }
+}
+
+@media (max-width: 430px) {
+  .app-shell {
+    width: calc(100% - 12px);
+    padding-top: 12px;
+    padding-bottom: 18px;
+  }
+
+  .topbar {
+    margin-bottom: 14px;
+  }
+
+  .poker-table {
+    height: 860px;
+    min-height: 860px;
+  }
+
+  .table-felt {
+    inset: 18% 4% 24% 4%;
+  }
+
+  .table-center {
+    width: calc(100% - 12px);
+  }
+
+  .table-hand-zone {
+    width: calc(100% - 12px);
+    padding: 0.72rem;
+  }
+
+  .table-hand-zone .hand {
+    gap: 0.5rem;
+  }
+
+  .table-hand-zone .playing-card {
+    min-height: 124px;
+    padding: 0.58rem;
+  }
+
+  .table-hand-zone .card-face {
+    font-size: 1.16rem;
+  }
+
+  .table-hand-zone .card-role strong {
+    font-size: 0.8rem;
+  }
+
+  .table-hand-zone .card-role span {
+    display: none;
+  }
+
+  .player-seat {
+    width: 110px;
+    min-height: 84px;
+  }
+
+  .player-seat.self-seat {
+    width: 136px;
+  }
+}
