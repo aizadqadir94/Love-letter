@@ -159,6 +159,21 @@ function runUnitTests() {
     assert.strictEqual(p2.alive, false, 'Prince forcing Princess discard should eliminate target');
   }
 
+
+
+  {
+    const { room, host, p2 } = makePlayingRoom();
+    host.hand = [];
+    const baron = addCard(host, 3);
+    addCard(host, 4);
+    setCard(p2, 4);
+    room.deck = [setCard({ id: 'deck' }, 2)];
+    playCard(room, host.id, { cardId: baron.id, targetId: p2.id });
+    assert.strictEqual(host.alive, true, 'Baron draw should not eliminate actor');
+    assert.strictEqual(p2.alive, true, 'Baron draw should not eliminate target');
+    assert.ok(room.logs.some((log) => log.type === 'baron-draw' && /Draw/.test(log.message)), 'Baron draw should be visible in log');
+  }
+
   {
     const { room, host, p2 } = makePlayingRoom();
     host.hand = [];
